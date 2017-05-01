@@ -1,10 +1,11 @@
 # STA-663-Final-Project
 
+The github repository: https://github.com/CeciliaShi/STA-663-Final-Project
 This repository contains material for the STA 663 final project.
 This repository contains code, examples and data for implementing the fast false selection rate algorithm proposed by 
 Dennis D.Boos, Leonard A. Stefanski, and Yujun Wu in the paper Fast FSR Variable Selection with Applications to Clinical Trials.
 
-The data folder contain two sets of simulated data with responses from 5 models for each simulated data. 
+The data folder contains two sets of simulated data with responses from 5 models for each simulated data. 
 It also contains the NCAA Data on 6 year college graduation rates. Both the simulated data and the NCAA data are referenced from
 http://www4.stat.ncsu.edu/~boos/var.select/
 
@@ -16,6 +17,10 @@ Following the paper and the R code written by the authors, we implemented the ke
 * gic: gives model size including intercept of min BIC model
 * bic_sim: chooses from FAS using minimum BIC
 
-We also included detailed examples of using these functions with tables and plots. 
+We also included detailed examples of using these functions with tables and plots. The example code can be found in the github repository. The examples include:
+* Examples of how to use the key functions in the package (fsr_fast), users can simply change the fsr_fast function with bic_sim or lasso_fit to run examples of BIC and Lasso
 
 The simulation file consists of model comparison of Fast FSR, BIC and LASSO using the simulated data sets with results.
+
+The repository also have a file Compare_run_tim.ipynb to show the possible optimizations using Cython.
+
