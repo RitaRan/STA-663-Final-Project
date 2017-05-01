@@ -1,5 +1,7 @@
 # STA-663-Final-Project
 
+The LaTex code of the report can be found through the link:https://www.overleaf.com/read/ssdybrngszwq
+
 The github repository: https://github.com/CeciliaShi/STA-663-Final-Project
 
 Source code can be found in fastfsr/fastfsr/__init__.py
