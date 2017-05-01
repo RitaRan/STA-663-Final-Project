@@ -1,5 +1,4 @@
 from setuptools import setup
-from Cython.Build import cythonize
 setup(name='fastfsr',
       version='0.1',
       description='Fast FSR Variable Selection',
@@ -8,5 +7,4 @@ setup(name='fastfsr',
       author_email='xs41@duke.edu,rz69@duke.edu',
       license='MIT',
       packages=['fastfsr'],
-      ext_modules = cythonize("helper.pyx"),
       zip_safe=False)

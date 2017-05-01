@@ -10,7 +10,9 @@ from tqdm import *
 from progress.bar import Bar
 
 def reg_subset(x, y):
-    
+    """
+    Forward selection, return variables selected step by step and coresponding rss, pvalue, index
+    """
     lm = sl.LinearRegression()
     
     (n,m) = x.shape
@@ -41,92 +43,11 @@ def reg_subset(x, y):
                      1,n-(vm+2))
     return (in_,np.array(in_var),rss, pv_org)
 
-def lasso_fit(x, y):
-    
-    #Define the alpha values to test
-    alpha_lasso = [1e-15, 1e-10, 1e-8, 1e-5,1e-4, 1e-3,1e-2, 1, 5, 10]
-    
-    #Initialize the dataframe to store coefficients
-    col = ['rss','intercept'] + ['coef_x_%d'%i for i in range(1,x.shape[1]+1)]
-    ind = [str(alpha_lasso[i]) for i in range(0,10)]
-    coef_matrix_lasso = pd.DataFrame(index=ind, columns=col)
-    
-    for i in range(10):
-        ls = sl.Lasso(alpha=alpha_lasso[i],normalize=True, max_iter=1e5)
-        ls.fit(x,y)
-        y_pred = ls.predict(x)
-        #Return the result in pre-defined format
-        rss = sum((y_pred-y)**2)
-        ret = [rss]
-        ret.extend([ls.intercept_])
-        ret.extend(ls.coef_)
-        coef_matrix_lasso.iloc[i,] = ret
-    
-    exist = np.sum(coef_matrix_lasso.ix[:,2:]==0, axis = 1)!=x.shape[1]
-    if(sum(exist)==0):
-        size = 0
-        lm = sl.LinearRegression()
-        intercept = pd.DataFrame(np.ones(x.shape[0]))
-        lm.fit(intercept, y)
-        fitted = lm.predict(intercept)
-    else:
-        alpha = pd.to_numeric(coef_matrix_lasso.index[exist][-1])
-        ls = sl.Lasso(alpha=alpha,normalize=True, max_iter=1e5)
-        ls.fit(x,y)
-        fitted = ls.predict(x)
-        index = np.array(range(len(ls.coef_)))[ls.coef_!=0]
-        size = len(index)
-        
-    # get residuals
-    residual = sum((y-fitted)**2)
-    df_residual = x.shape[0] - size - 1
-    
-    return {'fitted':fitted, 'residual':residual, 'df_residual':df_residual, 
-            'size':size, 'index': index} 
-
-def fsr_fast_pv(pv_orig, m, gam0 = 0.05, digits = 4, printout = True, plot = True):
-    m1 = len(pv_orig)
-    ng = m1+1
-    (pvm,alpha,alpha2) = helper(pv_orig, m1)
-    S = np.zeros(ng)
-    for j in range(1, ng):
-        S[j] = sum(pvm <= alpha[j])
-
-    # calculate gamma hat
-    (ghat2,ghat) = helper2(S,alpha,alpha2,m1,m,ng)
-    zp = pd.DataFrame({'a': np.concatenate([alpha, alpha2]), 'g': np.concatenate([ghat, ghat2])})
-    zp.sort_values(by =['a', 'g'], ascending = [True, False], inplace = True)
-    
-    # largest gamma hat and index
-    gamma_max = np.argmax(zp['g'])
-    
-    alpha_max = zp['a'][gamma_max]
-
-    # model size with ghat just below gam0
-    ind = np.logical_and(ghat <= gam0, alpha <= alpha_max)*1
-    Sind = S[np.max(np.where(ind > 0))]
-    
-    # calculate alpha_F
-    alpha_fast = (1 + Sind)*gam0/(m - Sind)
-    
-    # size of model no intercept
-    size1 = sum(pvm <= alpha_fast)
-    
-    # generate plot
-    if plot==True:
-        plt.plot(zp['a'], zp['g'], marker = 'o', markersize = 6)
-        plt.ylabel('Estimated Gamma')
-        plt.xlabel('Alpha')
-        pass
-
-    df1 = pd.DataFrame({'pval': pv_orig, 'pvmax': pvm, 'ghigh': ghat2, 'glow': ghat[1:ng]}, columns = ['pval', 'pvmax', 'ghigh', 'glow'])
-    df2 = pd.DataFrame({'m1': m1, 'm': m, 'gam0': gam0, 'size': size1, 'alphamax': alpha_max, 'alpha_fast': alpha_fast}, columns = ['m1', 'm', 'gam0', 'size', 'alphamax', 'alpha_fast'], index=[0])
-    if printout == True:
-        print(df1,df2)
-    return(np.round(df1, digits), np.round(df2, digits), ghat)
 
 def lasso_fit(x, y):
-    
+    """
+    Variable selection with lasso (cross validation included)
+    """
     #Define the alpha values to test
     alpha_lasso = [1e-15, 1e-10, 1e-8, 1e-5,1e-4, 1e-3,1e-2, 1, 5, 10]
     
@@ -204,3 +125,106 @@ def bic_sim(x, y):
         residual = sum((y - fitted)**2)
         df_residual = n - (bic - 1) - 1
     return dict({'fitted': fitted, 'residual': residual, 'df_residual': df_residual, 'size': bic - 1, 'index': x_ind})
+
+def fsr_fast_pv(pv_orig, m, gam0 = 0.05, digits = 4, printout = True, plot = True):
+    """Fast FSR based on summary p-values from forward selection"""
+    m1 = len(pv_orig)
+    pvm = np.zeros(m1)
+
+    # create monotone p-values
+    for i in range(0, m1):
+        pvm[i] = np.max(pv_orig[0:(i+1)])
+    alpha = np.concatenate([np.array([0]), pvm])
+    ng = len(alpha)
+    
+    # calculate model size
+    S = np.zeros(ng)
+    for j in range(1, ng):
+        S[j] = sum(pvm <= alpha[j])
+        
+    # calculate gamma hat
+    ghat = (m - S)*alpha/(1 + S)
+    
+    # add additional points to make jumps
+    alpha2 = alpha[1:ng] - 0.0000001
+    ghat2 = (m - S[0:(ng - 1)])*alpha2/(1 + S[0:(ng - 1)])
+
+    zp = pd.DataFrame({'a': np.concatenate([alpha, alpha2]), 'g': np.concatenate([ghat, ghat2])})
+    zp.sort_values(by =['a', 'g'], ascending = [True, False], inplace = True)
+    
+    # largest gamma hat and index
+    gamma_max = np.argmax(zp['g'])
+    
+    alpha_max = zp['a'][gamma_max]
+
+    # model size with ghat just below gam0
+    ind = np.logical_and(ghat <= gam0, alpha <= alpha_max)*1
+    Sind = S[np.max(np.where(ind > 0))]
+    
+    # calculate alpha_F
+    alpha_fast = (1 + Sind)*gam0/(m - Sind)
+    
+    # size of model no intercept
+    size1 = sum(pvm <= alpha_fast)
+    
+    # generate plot
+    if plot==True:
+        plt.plot(zp['a'], zp['g'], marker = 'o', markersize = 6)
+        plt.ylabel('Estimated Gamma')
+        plt.xlabel('Alpha')
+        pass
+
+    df1 = pd.DataFrame({'pval': pv_orig, 'pvmax': pvm, 'ghigh': ghat2, 'glow': ghat[1:ng]}, columns = ['pval', 'pvmax', 'ghigh', 'glow'])
+    df2 = pd.DataFrame({'m1': m1, 'm': m, 'gam0': gam0, 'size': size1, 'alphamax': alpha_max, 'alpha_fast': alpha_fast}, columns = ['m1', 'm', 'gam0', 'size', 'alphamax', 'alpha_fast'], index=[0])
+    if printout == True:
+        print(df1,df2)
+    return(np.round(df1, digits), np.round(df2, digits), ghat)
+
+def fsr_fast(x, y, gam0 = 0.05,digits = 4,printout = False, plot = False):
+    """
+    Estimated alpha for forward selection using Fast FSR (no simulation)
+    """
+    lm = sl.LinearRegression()
+    
+    x = pd.DataFrame(x)
+    y = pd.DataFrame(y)
+    y.columns = ["y"]
+    cols = np.array(range(x.shape[1]))
+    colnames = map(lambda x: "x" + str(x), cols)
+    x.columns = colnames
+    df = pd.concat([x,y], axis = 1)
+    x = df.ix[:,:-1]
+    y = df.ix[:,-1]
+    
+    # forward selection
+    out = reg_subset(x,y)
+    #print(out)
+    pv_orig = out[3]
+    m = len(pv_orig)
+    n = x.shape[0]
+
+    
+    # model selection using fast fsr
+    dfs = fsr_fast_pv(pv_orig, m, printout = printout, plot = plot)
+ 
+    
+    # model selection using fast fsr
+    dfs = fsr_fast_pv(pv_orig, m, printout = printout, plot = plot)
+    
+    # get the variables should be included
+    size = int(dfs[1].ix[0,3])
+    var_idx = out[0][:size]
+    
+    # fit model
+    if len(var_idx)==0:
+        intercept = pd.DataFrame(np.ones(x.shape[0]))
+        lm.fit(intercept, y)
+        fitted = lm.predict(intercept)
+    else:
+        x = x.ix[:,var_idx]
+        lm.fit(x,y)
+        fitted = lm.predict(x)
+    residual = sum((y-fitted)**2)
+    df_residual = n - size - 1
+    return {'fitted':fitted, 'residual':residual, 'df_residual':df_residual, 
+            'size':size, 'index': var_idx}
