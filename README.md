@@ -1,6 +1,16 @@
 # STA-663-Final-Project
 
 The github repository: https://github.com/CeciliaShi/STA-663-Final-Project
+Source code can be found in fastfsr/fastfsr/__init__.py
+
+Instructions to install the package:
+
+a. download the folder fastfsr
+b. after download go into fastfsr, and create a new Jupyter Notebookand 
+c. type in "!pip install ." 
+d. type in "import fastfsr"
+
+
 This repository contains material for the STA 663 final project.
 This repository contains code, examples and data for implementing the fast false selection rate algorithm proposed by 
 Dennis D.Boos, Leonard A. Stefanski, and Yujun Wu in the paper Fast FSR Variable Selection with Applications to Clinical Trials.
