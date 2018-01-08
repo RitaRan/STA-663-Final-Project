@@ -1,5 +1,9 @@
 # STA-663-Final-Project
 
+Team Member:
+Xilin Cecilia Shi
+Ran Zhou
+
 The LaTex code of the report can be found through the link:https://www.overleaf.com/read/ssdybrngszwq
 
 The github repository: https://github.com/CeciliaShi/STA-663-Final-Project
