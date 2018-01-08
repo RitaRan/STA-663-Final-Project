@@ -1,10 +1,10 @@
 # STA-663-Final-Project
 
-# Team Member:
+# Team Members:
 
-Xilin Cecilia Shi
+- Xilin Cecilia Shi
 
-Ran Zhou
+- Ran Zhou
 
 The LaTex code of the report can be found through the link:https://www.overleaf.com/read/ssdybrngszwq
 
